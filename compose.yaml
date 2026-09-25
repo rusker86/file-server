@@ -1,0 +1,8 @@
+services:
+  file-server:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - "${HOME}/Documentos:/shared:Z"
+    command: /shared
