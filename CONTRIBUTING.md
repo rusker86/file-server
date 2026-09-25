@@ -1,290 +1,168 @@
-# Developer Guide
+# Contributing Guide
 
-This document explains the internal structure of the project and how the different parts work together.
+Thanks for taking the time to contribute to this project. The app is intentionally small and straightforward, so it is easiest to work with when changes stay focused and predictable.
 
-## Overview
+## Project overview
 
-The project is a small file server built with Node.js and Express.
-
-The server receives a directory path as a command-line argument and exposes that directory through a web interface and a REST API.
-
-The same application can run directly on the host or inside a Docker container.
+This application serves a directory from the local filesystem through a browser UI and a small REST API.
 
 ```text
-                 ┌─────────────────┐
-                 │   Web browser   │
-                 └────────┬────────┘
-                          │
-                          ▼
-                  ┌───────────────┐
-                  │    Express    │
-                  │    server     │
-                  └───────┬───────┘
-                          │
-                          ▼
-                  Shared directory
+Browser / API client
+        │
+        ▼
+    Express server
+        │
+        ▼
+  Shared directory on disk
 ```
+
+The server reads the target folder from the command line and exposes it through:
+
+- the static frontend in `public/`
+- the API endpoints in `src/handlersRoutes.js`
+
+## Before you start
+
+You will need:
+
+- Node.js 22 or newer
+- npm
+- Git
+- A folder on disk that you can safely share while testing
+
+## Local setup
+
+```bash
+git clone <repository-url>
+cd file-server
+npm install
+```
+
+Run the project against a folder for testing:
+
+```bash
+node src/index.js ./test
+```
+
+Then open:
+
+```text
+http://localhost:3000
+```
+
+For a faster development loop, the project also includes:
+
+```bash
+npm run dev
+```
+
+This script already targets the `./test` directory.
 
 ## Project structure
 
 ```text
 src/
 ├── index.js
-├── routes.js
-└── handlersRoutes.js
-
+├── server.js
+├── createRoutes.js
+├── handlersRoutes.js
+├── newFile.js
 public/
 ├── index.html
 ├── main.js
-└── styles.css
-
+├── styles.css
 Dockerfile
 compose.yaml
 package.json
+README.md
+CONTRIBUTING.md
+LICENSE.md
 ```
 
-### `src/index.js`
+### Main responsibilities
 
-Application entry point.
+- `src/index.js`: bootstraps the app and validates the required folder argument
+- `src/server.js`: creates the Express app and serves static files
+- `src/createRoutes.js`: registers the routes used by the server
+- `src/handlersRoutes.js`: handles directory listing, downloads, and health checks
+- `public/main.js`: browser logic for listing folders and downloading files
 
-It reads the directory passed through the command line and starts the Express server.
+## How the app works
 
-Example:
+The CLI entry point reads a folder path from `process.argv` and passes it into the server instance. The application then exposes it using the following operations:
+
+- `GET /api/files/` lists the items in the root folder
+- `GET /api/files/<path>` lists items in a subfolder
+- `GET /api/download/<path>` downloads a file
+- `GET /api/health` returns a simple health status
+
+The frontend calls these endpoints to render the directory tree and let users navigate through the shared content.
+
+## Coding guidelines
+
+Keep the code simple and consistent with the rest of the project:
+
+- Prefer small, focused changes
+- Avoid adding unnecessary dependencies
+- Do not broaden the scope of a PR beyond the bug or feature it addresses
+- Update documentation when you change user-visible behavior
+- Keep the API contract stable unless the change clearly requires a breaking update
+
+## Frontend changes
+
+The UI is intentionally lightweight and uses plain JavaScript. If you modify the browser behavior, check that:
+
+- directory navigation still works
+- download links still resolve correctly
+- API responses are handled as expected
+- the visible path remains accurate while browsing
+
+## Backend changes
+
+When working in the API layer, keep in mind that every request resolves against the folder passed at startup. A change should not unexpectedly broaden the root path or break file traversal assumptions.
+
+If you add a new route, document it in the README and keep the route naming consistent with the existing API.
+
+## Verification
+
+Before opening a pull request, verify the changed behavior locally.
+
+### Health check
 
 ```bash
-node src/index.js /home/user/Documents
+curl http://localhost:3000/api/health
 ```
 
-The directory is available through:
-
-```js
-argv[2]
-```
-
-### `src/routes.js`
-
-Defines the HTTP routes used by the application.
-
-Current routes include:
-
-```text
-GET /api/files
-GET /api/files/<path>
-GET /api/download/<path>
-GET /api/health
-GET /
-```
-
-### `src/handlersRoutes.js`
-
-Contains the request handlers for the API.
-
-The file handler reads the requested directory using Node's filesystem API and returns the result as JSON.
-
-Each entry contains its name and type:
+Expected result:
 
 ```json
-{
-  "name": "example.txt",
-  "type": "isFile"
-}
+{ "message": "OK" }
 ```
 
-Directories are identified with:
-
-```json
-{
-  "name": "/Documents",
-  "type": "isDirectory"
-}
-```
-
-The frontend uses the `type` field to determine whether an entry should open as a directory or be downloaded as a file.
-
-## Frontend
-
-The frontend is intentionally simple and uses vanilla JavaScript.
-
-`public/main.js` is responsible for:
-
-* Requesting directory contents from the API
-* Rendering files and directories
-* Navigating through directories
-* Handling the back button
-* Starting file downloads
-* Updating the current path
-
-The browser does not change the URL when navigating through directories. The current directory is stored in the `currentPath` variable.
-
-## Docker
-
-The project includes a `Dockerfile` and a `compose.yaml`.
-
-### Dockerfile
-
-The Docker image is based on Node.js 22 Alpine:
-
-```dockerfile
-FROM node:22-alpine
-```
-
-Dependencies are installed inside the image and the application source is copied into `/app`.
-
-The container uses:
-
-```dockerfile
-ENTRYPOINT ["node", "src/index.js"]
-```
-
-This allows the directory to be passed directly when starting the container:
+### List the root folder
 
 ```bash
-docker run file-server /shared
+curl http://localhost:3000/api/files/
 ```
 
-which results in:
-
-```text
-node src/index.js /shared
-```
-
-### Shared directory
-
-The directory being served is not copied into the Docker image.
-
-Instead, Docker mounts a directory from the host:
-
-```text
-Host directory
-      │
-      │ volume
-      ▼
- /shared inside container
-      │
-      ▼
- Node.js file server
-```
-
-For example:
+### Download a file
 
 ```bash
-docker run --rm \
-  -p 3000:3000 \
-  -v "/home/user/Documents:/shared:Z" \
-  file-server \
-  /shared
+curl -O http://localhost:3000/api/download/test.txt
 ```
 
-This means the container can be replaced or removed without affecting the files being served.
+## Pull request checklist
 
-### SELinux
+Before submitting a PR, confirm that:
 
-The `:Z` option is used on the volume mount:
+- the project still starts with a valid folder path
+- the relevant endpoint or UI behavior works as expected
+- the documentation reflects the new behavior, if applicable
+- the change is small and easy to review
+- there are no unrelated code edits mixed in
 
-```text
--v "/path/to/folder:/shared:Z"
-```
+## Need help?
 
-This is important on systems using SELinux, such as Fedora, because SELinux can otherwise prevent the container from accessing the mounted directory even when normal Unix permissions appear correct.
+If you are not sure how a feature should fit the existing design, open an issue before making a large change. This project is small enough that a short discussion often prevents rework later.
 
-### Docker Compose
-
-`compose.yaml` provides a shorter way to start the server.
-
-The current configuration mounts:
-
-```text
-~/Documentos → /shared
-```
-
-and passes `/shared` to the application.
-
-Start the server with:
-
-```bash
-docker compose up
-```
-
-or run it in the background:
-
-```bash
-docker compose up -d
-```
-
-The container can be stopped with:
-
-```bash
-docker compose down
-```
-
-## Adding features
-
-When adding new API functionality:
-
-1. Add the route in `src/routes.js`.
-2. Add the handler in `src/handlersRoutes.js`.
-3. Update the frontend if the feature requires a UI change.
-4. Update `API.md` if the API changes.
-5. Update this document if the internal architecture changes.
-
-## Running locally
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Start the server:
-
-```bash
-node src/index.js /path/to/folder
-```
-
-## Running with Docker
-
-Build the image:
-
-```bash
-docker build -t file-server .
-```
-
-Run it:
-
-```bash
-docker run --rm \
-  -p 3000:3000 \
-  -v "/path/to/folder:/shared:Z" \
-  file-server \
-  /shared
-```
-
-Or use Docker Compose:
-
-```bash
-docker compose up
-```
-
-## Security considerations
-
-The server currently assumes that the directory passed to it is trusted.
-
-Before exposing the server to an untrusted network, the following areas should be considered:
-
-* Authentication
-* Authorization
-* Path traversal protection
-* Symlink handling
-* File access restrictions
-* HTTPS
-* Network exposure
-
-The server should therefore currently be treated as a local or private-network tool rather than a public file hosting service.
-
-## Design goal
-
-The project intentionally keeps the implementation small.
-
-The goal is to provide a functional file server without introducing unnecessary abstractions or dependencies.
-
-Docker is used as a deployment option rather than being required by the application itself. The same Node.js application can run directly on the host or inside a container.
+Thanks again for contributing.

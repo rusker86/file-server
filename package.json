@@ -9,8 +9,8 @@
   },
   "type": "module",
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Rusker",
+  "license": "MIT",
   "dependencies": {
     "body-parser": "^2.3.0",
     "express": "^5.2.1"
