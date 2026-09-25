@@ -15,23 +15,6 @@ backButton.addEventListener('click', () => {
   renderFiles(previousPath)
 });
 
-
-async function getData(path) {
-  const response = await fetch(`/api/files${path}`);
-
-  console.log(response);
-  const data = await response.json();
-  console.log(data);
-  data.files.forEach(file => {
-    const fileItem = document.createElement('li');
-    fileItem.textContent = file.name;
-    fileItem.addEventListener('click', handleFileClick(file, path));
-    filesDiv.appendChild(fileItem);
-
-  });
-}
-
-
 function handleFileClick(file, path) {
   return async () => {
     if (file.name.startsWith('/')) {
@@ -51,14 +34,51 @@ async function renderFiles(path = "") {
 
   data.files.forEach(file => {
     const fileItem = document.createElement("li");
-    fileItem.textContent = file.name;
+    const icon = document.createElement("span");
+    const name = document.createElement("span");
 
-    fileItem.addEventListener("click", handleFileClick(file, path));
+    icon.classList.add("file-icon");
+    name.classList.add("file-name");
+
+    if (file.type === "isDirectory") {
+      icon.textContent = "📁";
+      fileItem.classList.add("directory");
+    } else {
+      icon.textContent = "📄";
+      fileItem.classList.add("file");
+    }
+
+    name.textContent = file.name.replace(/^\//, "");
+
+    fileItem.appendChild(icon);
+    fileItem.appendChild(name);
+
+    fileItem.addEventListener(
+      "click",
+      handleFileClick(file, path)
+    );
 
     filesDiv.appendChild(fileItem);
   });
 
   currentPath = path;
 }
+
+const themeButton = document.querySelector('#theme');
+
+const savedTheme = localStorage.getItem('theme');
+
+if (savedTheme === 'dark') {
+  document.documentElement.classList.add('dark');
+  themeButton.textContent = '☀️';
+}
+
+themeButton.addEventListener('click', () => {
+  const dark = document.documentElement.classList.toggle('dark');
+
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+
+  themeButton.textContent = dark ? '☀️' : '🌙';
+});
 
 renderFiles()

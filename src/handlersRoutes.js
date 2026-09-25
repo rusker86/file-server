@@ -19,6 +19,13 @@ function rootHandler(req, res) {
     })),
   }
 
+
+  console.log("Folder:", folder);
+  console.log("Path:", path);
+  console.log("Full path:", fullPath);
+  console.log("Files:", files);
+
+
   res.json(result);
 }
 
