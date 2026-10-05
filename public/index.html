@@ -15,7 +15,9 @@
                 <h1>File Server</h1>
 
                 <div class="controls">
-                    <button id="theme">🌙</button>
+                  <button id="new-folder">📁 New folder</button>
+                  <button id="upload">⬆️ Upload</button>
+                  <button id="theme">🌙</button>
                 </div>
             </header>
 
@@ -24,6 +26,75 @@
             <ul class="files"></ul>
 
         </main>
+
+        <!-- Upload modal -->
+        <div id="upload-modal" class="modal hidden">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h2>Upload files</h2>
+                    <button id="close-upload" class="close-button">×</button>
+                </div>
+
+                <div id="drop-zone" class="drop-zone">
+                    <div class="drop-icon">📁</div>
+
+                    <p>
+                        Drag and drop files here
+                    </p>
+
+                    <span>or click to select files</span>
+
+                    <input
+                        id="file-input"
+                        type="file"
+                        multiple
+                        hidden
+                    >
+                </div>
+
+                <ul id="upload-list" class="upload-list"></ul>
+
+                <div class="modal-actions">
+                    <button id="cancel-upload">Cancel</button>
+                    <button id="start-upload" class="primary">
+                        Upload
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="folder-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>New folder</h2>
+              <button id="close-folder" class="close-button">×</button>
+            </div>
+
+            <form id="folder-form">
+              <input
+                id="folder-name"
+                type="text"
+                placeholder="Folder name"
+                autocomplete="off"
+                required
+              >
+
+              <div class="modal-actions">
+                <button type="button" id="cancel-folder">
+                  Cancel
+                </button>
+
+                <button type="submit" class="primary">
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div id="toast-container"></div>
 
         <script src="main.js"></script>
     </body>

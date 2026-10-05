@@ -1,6 +1,8 @@
 node_modules
 .git
 .gitignore
-README.md
+*.md
 docs
 npm-debug.log
+test
+/tmp
