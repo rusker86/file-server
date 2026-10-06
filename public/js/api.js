@@ -53,6 +53,14 @@ export function deleteFiles(paths) {
   );
 }
 
+export function moveFiles(files, destination) {
+  return request(
+    "/api/move",
+    jsonOptions("POST", { files, destination }),
+    "Could not move the selected items."
+  );
+}
+
 export function uploadFiles(files, path) {
   const formData = new FormData();
 

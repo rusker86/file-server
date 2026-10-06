@@ -18,4 +18,6 @@ router.get("/download/{*splat}", files.downloadFile);
 router.post("/upload", upload.array("file"), files.uploadFiles);
 router.post("/folders", files.createFolder);
 
+router.post("/move", files.moveFiles)
+
 export default router;

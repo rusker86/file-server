@@ -1,11 +1,20 @@
 import * as api from "./api.js";
-import { clearSelection, selectItem, toggleItem } from "./selection.js";
+import {
+  clearSelection,
+  getSelectedFiles,
+  getSelectedPaths,
+  selectItem,
+  toggleItem,
+} from "./selection.js";
 import { displayName, isDirectory, joinPath, parentPath, state } from "./state.js";
 import { showToast } from "./toast.js";
 
 const filesList = document.querySelector(".files");
+const emptyState = document.querySelector("#empty-state");
 const backButton = document.querySelector("#back");
 const currentPathLabel = document.querySelector("#current-path");
+
+let draggedPaths = [];
 
 function openItem(file) {
   const path = joinPath(state.currentPath, file.name);
@@ -26,6 +35,7 @@ function createFileItem(file) {
   fileItem._file = file;
 
   fileItem.classList.add("file-item", isDirectory(file) ? "directory" : "file");
+  fileItem.draggable = true;
   icon.classList.add("file-icon");
   name.classList.add("file-name");
 
@@ -49,7 +59,74 @@ function createFileItem(file) {
 
   fileItem.addEventListener("dblclick", () => openItem(file));
 
+  fileItem.addEventListener("dragstart", event => {
+    draggedPaths = getSelectedFiles().includes(file)
+      ? getSelectedPaths()
+      : [joinPath(state.currentPath, file.name)];
+
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/json", JSON.stringify(draggedPaths));
+  });
+
+  fileItem.addEventListener("dragend", () => {
+    draggedPaths = [];
+    document.querySelectorAll(".file-item.drop-target")
+      .forEach(item => item.classList.remove("drop-target"));
+  });
+
+  if (isDirectory(file)) {
+    fileItem.addEventListener("dragover", event => {
+      const destination = joinPath(state.currentPath, file.name);
+
+      if (!canMoveTo(destination, draggedPaths)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      fileItem.classList.add("drop-target");
+    });
+
+    fileItem.addEventListener("dragleave", () => {
+      fileItem.classList.remove("drop-target");
+    });
+
+    fileItem.addEventListener("drop", async event => {
+      event.preventDefault();
+      fileItem.classList.remove("drop-target");
+
+      const destination = joinPath(state.currentPath, file.name);
+      const sources = draggedPaths;
+
+      if (!canMoveTo(destination, sources)) {
+        return;
+      }
+
+      try {
+        const result = await api.moveFiles(sources, destination);
+        showToast(result.message || "Items moved successfully.");
+        await renderFiles();
+      } catch (error) {
+        showToast(error.message || "Could not move the selected items.", "error");
+      }
+    });
+  }
+
   return fileItem;
+}
+
+function canMoveTo(destination, sources) {
+  if (sources.length === 0) {
+    return false;
+  }
+
+  const normalizedDestination = destination.replace(/\/+$/, "");
+
+  return sources.every(source => {
+    const normalizedSource = source.replace(/\/+$/, "");
+    return normalizedSource !== normalizedDestination &&
+      !normalizedDestination.startsWith(`${normalizedSource}/`);
+  });
 }
 
 export async function renderFiles(path = state.currentPath) {
@@ -60,6 +137,7 @@ export async function renderFiles(path = state.currentPath) {
     clearSelection();
 
     filesList.replaceChildren(...files.map(createFileItem));
+    emptyState.hidden = files.length > 0;
 
     state.currentPath = path;
     currentPathLabel.textContent = path || "/";

@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, rm, stat, unlink } from "node:fs/promises";
+import { copyFile, mkdir, readdir, rm, stat, unlink, rename} from "node:fs/promises";
 import path from "node:path";
 import { PathError, isValidName, resolveInsideRoot } from "../utils/paths.js";
 
@@ -155,6 +155,43 @@ export async function deleteFiles(req, res) {
     res.json({ message: "Deleted successfully.", deleted: paths.length });
   } catch (error) {
     sendFsError(res, error, "Could not delete the selected items.");
+  }
+}
+
+export async function moveFiles(req, res) {
+  const files = req.body?.files;
+  const destination = req.body?.destination;
+  const { root } = req.app.locals;
+
+  if (!Array.isArray(files) || files.length === 0) {
+    return res.status(400).json({ message: "No files to move." });
+  }
+
+  try {
+
+    const fullPaths = files.map(p => resolveInsideRoot(root, p))
+    const fullPathDestination = resolveInsideRoot(root, destination);
+
+    if (fullPaths.includes(root)) {
+      throw new PathError("The folder itself cannot be moved", 403)
+    }
+
+
+    for (const fullPath of fullPaths) {
+      let nameFile = fullPath.split("/")
+      nameFile = nameFile[nameFile.length - 1]
+
+      await rename(fullPath, fullPathDestination.concat("/" + nameFile), error => {
+        if (error) {
+          return res.status(403).json({ message: "The folder itself cannot be moved" });
+        }
+        return res.status(403).json({ message: "Files moved successfully", moved: files.length });
+      })
+    }
+
+    res.json({ message: "Moved successfully.", moved: files.length });
+  } catch (error) {
+    sendFsError(res, error, "Could not move the selected items.");
   }
 }
 

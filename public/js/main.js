@@ -4,7 +4,7 @@ import { initFileBrowser, renderFiles } from "./files.js";
 import { closeFolderModal, initFolderModal } from "./folder-modal.js";
 import { initBoxSelection } from "./selection.js";
 import { initTheme } from "./theme.js";
-import { initUpload } from "./upload.js";
+import { closeUploadModal, initUpload } from "./upload.js";
 
 initTheme();
 initFileBrowser();
@@ -18,6 +18,7 @@ document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     closeDeleteModal();
     closeFolderModal();
+    closeUploadModal();
   }
 });
 
