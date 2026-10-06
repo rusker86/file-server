@@ -1,121 +1,96 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>File Server</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en">
+  <head>
+    <title>File Server</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <link rel="stylesheet" href="styles.css">
-    </head>
+    <link rel="stylesheet" href="css/styles.css">
+    <script type="module" src="js/main.js"></script>
+  </head>
 
-    <body>
-        <main class="container">
+  <body>
+    <main class="container">
+      <header>
+        <h1>File Server</h1>
 
-            <header>
-                <h1>File Server</h1>
+        <div class="controls">
+          <button id="new-folder" type="button">📁 New folder</button>
+          <button id="upload" type="button">⬆️ Upload</button>
+          <button id="delete" type="button" class="danger" disabled>🗑️ Delete</button>
+          <button id="theme-toggle" type="button" title="Toggle theme"></button>
+        </div>
+      </header>
 
-                <div class="controls">
-                  <button id="new-folder">📁 New folder</button>
-                  <button id="upload">⬆️ Upload</button>
-                  <button id="delete" class="danger" disabled>🗑️ Delete</button>
-                </div>
-            </header>
+      <div class="toolbar">
+        <button id="back" type="button" disabled>← Back</button>
+        <span id="current-path" class="current-path">/</span>
+      </div>
 
-            <button id="back">← Back</button>
+      <ul class="files"></ul>
 
-            <ul class="files"></ul>
+      <input id="file-input" type="file" multiple hidden>
+    </main>
 
-        </main>
+    <!-- Right-click menu -->
+    <div id="context-menu" class="context-menu hidden" role="menu">
+      <button type="button" class="context-menu-item" role="menuitem" data-action="new-folder">
+        <span class="context-menu-icon">📁</span>
+        <span class="context-menu-label">New folder</span>
+      </button>
 
-        <!-- Upload modal -->
-        <div id="upload-modal" class="modal hidden">
-            <div class="modal-content">
+      <div class="context-menu-separator" role="separator"></div>
 
-                <div class="modal-header">
-                    <h2>Upload files</h2>
-                    <button id="close-upload" class="close-button">×</button>
-                </div>
+      <button type="button" class="context-menu-item danger" role="menuitem" data-action="delete">
+        <span class="context-menu-icon">🗑️</span>
+        <span class="context-menu-label">Delete</span>
+      </button>
+    </div>
 
-                <div id="drop-zone" class="drop-zone">
-                    <div class="drop-icon">📁</div>
-
-                    <p>
-                        Drag and drop files here
-                    </p>
-
-                    <span>or click to select files</span>
-
-                    <input
-                        id="file-input"
-                        type="file"
-                        multiple
-                        hidden
-                    >
-                </div>
-
-                <ul id="upload-list" class="upload-list"></ul>
-
-                <div class="modal-actions">
-                    <button id="cancel-upload">Cancel</button>
-                    <button id="start-upload" class="primary">
-                        Upload
-                    </button>
-                </div>
-
-            </div>
+    <!-- New folder modal -->
+    <div id="folder-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>New folder</h2>
+          <button id="close-folder" type="button" class="close-button">×</button>
         </div>
 
-        <div id="folder-modal" class="modal hidden">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h2>New folder</h2>
-              <button id="close-folder" class="close-button">×</button>
-            </div>
+        <form id="folder-form">
+          <input
+            id="folder-name"
+            type="text"
+            placeholder="Folder name"
+            autocomplete="off"
+            required
+          >
 
-            <form id="folder-form">
-              <input
-                id="folder-name"
-                type="text"
-                placeholder="Folder name"
-                autocomplete="off"
-                required
-              >
-
-              <div class="modal-actions">
-                <button type="button" id="cancel-folder">
-                  Cancel
-                </button>
-
-                <button type="submit" class="primary">
-                  Create
-                </button>
-              </div>
-            </form>
+          <div class="modal-actions">
+            <button type="button" id="cancel-folder">Cancel</button>
+            <button type="submit" class="primary">Create</button>
           </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete confirmation modal -->
+    <div id="delete-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Delete files</h2>
+          <button id="close-delete" type="button" class="close-button">×</button>
         </div>
 
-        <div id="delete-modal" class="modal hidden">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h2>Delete files</h2>
-              <button id="close-delete" class="close-button">×</button>
-            </div>
+        <p id="delete-message"></p>
 
-            <p id="delete-message"></p>
+        <ul id="delete-list" class="item-list"></ul>
 
-            <ul id="delete-list" class="upload-list"></ul>
-
-            <div class="modal-actions">
-              <button type="button" id="cancel-delete">Cancel</button>
-              <button type="button" id="confirm-delete" class="danger-solid">
-                Delete
-              </button>
-            </div>
-          </div>
+        <div class="modal-actions">
+          <button type="button" id="cancel-delete">Cancel</button>
+          <button type="button" id="confirm-delete" class="danger-solid">Delete</button>
         </div>
+      </div>
+    </div>
 
-        <div id="toast-container"></div>
-
-        <script src="main.js"></script>
-    </body>
+    <div id="toast-container"></div>
+  </body>
 </html>

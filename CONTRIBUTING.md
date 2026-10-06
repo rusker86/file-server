@@ -19,7 +19,7 @@ Browser / API client
 The server reads the target folder from the command line and exposes it through:
 
 - the static frontend in `public/`
-- the API endpoints in `src/handlersRoutes.js`
+- the API endpoints in `src/controllers/files.controller.js`
 
 ## Before you start
 
@@ -63,29 +63,26 @@ This script already targets the `./test` directory.
 ```text
 src/
 ├── index.js
-├── server.js
-├── createRoutes.js
-├── handlersRoutes.js
-├── newFile.js
+├── app.js
+├── routes/api.routes.js
+├── controllers/files.controller.js
+└── utils/paths.js
 public/
 ├── index.html
-├── main.js
-├── styles.css
-Dockerfile
-compose.yaml
-package.json
-README.md
-CONTRIBUTING.md
-LICENSE.md
+├── css/styles.css
+└── js/            # ES modules, entry point: main.js
 ```
+
+See the README for a description of every file.
 
 ### Main responsibilities
 
 - `src/index.js`: bootstraps the app and validates the required folder argument
-- `src/server.js`: creates the Express app and serves static files
-- `src/createRoutes.js`: registers the routes used by the server
-- `src/handlersRoutes.js`: handles directory listing, downloads, and health checks
-- `public/main.js`: browser logic for listing folders and downloading files
+- `src/app.js`: creates the Express app, serves static files and mounts `/api`
+- `src/routes/api.routes.js`: registers the API routes
+- `src/controllers/files.controller.js`: implements the API handlers
+- `src/utils/paths.js`: keeps every path inside the shared folder
+- `public/js/`: browser logic, one module per feature (file list, selection, context menu, modals, upload...)
 
 ## How the app works
 
@@ -95,6 +92,9 @@ The CLI entry point reads a folder path from `process.argv` and passes it into t
 - `GET /api/files/<path>` lists items in a subfolder
 - `GET /api/download/<path>` downloads a file
 - `GET /api/health` returns a simple health status
+- `POST /api/folders` creates a folder
+- `POST /api/upload` uploads files
+- `DELETE /api/files` deletes files and folders
 
 The frontend calls these endpoints to render the directory tree and let users navigate through the shared content.
 
@@ -119,7 +119,7 @@ The UI is intentionally lightweight and uses plain JavaScript. If you modify the
 
 ## Backend changes
 
-When working in the API layer, keep in mind that every request resolves against the folder passed at startup. A change should not unexpectedly broaden the root path or break file traversal assumptions.
+When working in the API layer, keep in mind that every request resolves against the folder passed at startup (`req.app.locals.root`). Always build filesystem paths with `resolveInsideRoot()` from `src/utils/paths.js` so a request can never escape the shared folder.
 
 If you add a new route, document it in the README and keep the route naming consistent with the existing API.
 

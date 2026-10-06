@@ -12,7 +12,6 @@
   "author": "Rusker",
   "license": "MIT",
   "dependencies": {
-    "body-parser": "^2.3.0",
     "express": "^5.2.1",
     "multer": "^2.4.0"
   },

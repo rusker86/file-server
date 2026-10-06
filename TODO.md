@@ -5,13 +5,14 @@ FILE SERVER
 │   ├── [x] Download files
 │   ├── [x] Upload files
 │   ├── [x] Create folders
-│   ├── [ ] Delete files/folders
+│   ├── [x] Delete files/folders
 │   └── [ ] Move files/folders
 │
 ├── Security
 │   └── [ ] Authentication
 │
 ├── File interaction
+│   ├── [x] Context menu (new folder / delete)
 │   ├── [ ] Drag & drop move
 │   ├── [ ] File preview
 │   ├── [ ] Text editor
@@ -22,5 +23,5 @@ FILE SERVER
     ├── [ ] Search
     ├── [ ] File information
     ├── [ ] Upload progress
-    ├── [ ] Multiple selection
+    ├── [x] Multiple selection
     └── [ ] Sharing
