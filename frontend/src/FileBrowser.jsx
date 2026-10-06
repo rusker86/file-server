@@ -1,235 +1,34 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as api from "./api.js";
-import FileBrowser from "./FileBrowser.jsx";
-import AuthPageView from "./components/AuthPage.jsx";
-import ContextMenuView from "./components/ContextMenu.jsx";
-import DeleteModalView from "./components/DeleteModal.jsx";
-import FileHeaderView from "./components/FileHeader.jsx";
-import FileRowView from "./components/FileRow.jsx";
-import FolderModalView from "./components/FolderModal.jsx";
-import ToastMessageView from "./components/ToastMessage.jsx";
-import UploadModalView from "./components/UploadModal.jsx";
+import ContextMenu from "./components/ContextMenu.jsx";
+import DeleteModal from "./components/DeleteModal.jsx";
+import FileHeader from "./components/FileHeader.jsx";
+import FileRow from "./components/FileRow.jsx";
+import FolderModal from "./components/FolderModal.jsx";
+import ToastMessage from "./components/ToastMessage.jsx";
+import UploadModal from "./components/UploadModal.jsx";
+import { canMoveTo, isDirectory, joinPath, parentPath } from "./utils/paths.js";
 
-function joinPath(base, name) {
-  const cleanBase = base.replace(/\/+$/, "");
-  const cleanName = name.replace(/^\/+/, "");
-  return `${cleanBase}/${cleanName}`;
-}
-
-function parentPath(path) {
-  const parts = path.split("/").filter(Boolean);
-  parts.pop();
-  return parts.length ? `/${parts.join("/")}` : "";
-}
-
-function displayName(file) {
-  return file.name.replace(/^\//, "");
-}
-
-function isDirectory(file) {
-  return file.type === "isDirectory";
-}
-
-function canMoveTo(destination, sources) {
-  if (!sources.length) {
-    return false;
-  }
-
-  const normalizedDestination = destination.replace(/\/+$/, "");
-  return sources.every(source => {
-    const normalizedSource = source.replace(/\/+$/, "");
-    return normalizedSource !== normalizedDestination &&
-      !normalizedDestination.startsWith(`${normalizedSource}/`);
-  });
-}
-
-function AuthPage({ mode }) {
-  const isRegistration = mode === "register";
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  async function submit(event) {
-    event.preventDefault();
-    setError("");
-
-    const form = new FormData(event.currentTarget);
-    const username = form.get("username");
-    const password = form.get("password");
-
-    if (isRegistration && password !== form.get("password-confirmation")) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      if (isRegistration) {
-        await api.register(username, password);
-      } else {
-        await api.login(username, password);
-      }
-      window.location.replace("/");
-    } catch (requestError) {
-      setError(requestError.message || "Authentication failed.");
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <main className="auth-layout">
-      <div className="auth-shell">
-        <a className="auth-brand" href="/">File Server</a>
-        <section className="auth-panel" aria-labelledby="auth-title">
-          <p className="auth-kicker">
-            {isRegistration ? "A private space for every account" : "Personal file storage"}
-          </p>
-          <h1 id="auth-title">{isRegistration ? "Create account" : "Sign in"}</h1>
-          <p className="auth-description">
-            {isRegistration
-              ? "Your files will be stored separately from other users."
-              : "Continue to your files."}
-          </p>
-
-          <form onSubmit={submit}>
-            <label>
-              Username
-              <input
-                name="username"
-                type="text"
-                autoComplete="username"
-                minLength={3}
-                maxLength={32}
-                pattern={isRegistration ? "[A-Za-z0-9._\\-]+" : undefined}
-                required
-              />
-              {isRegistration && (
-                <span className="field-hint">
-                  3-32 letters, numbers, dots, dashes or underscores
-                </span>
-              )}
-            </label>
-            <label>
-              Password
-              <input
-                name="password"
-                type="password"
-                autoComplete={isRegistration ? "new-password" : "current-password"}
-                minLength={8}
-                maxLength={128}
-                required
-              />
-              {isRegistration && <span className="field-hint">At least 8 characters</span>}
-            </label>
-            {isRegistration && (
-              <label>
-                Confirm password
-                <input
-                  name="password-confirmation"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  maxLength={128}
-                  required
-                />
-              </label>
-            )}
-            {error && <p className="auth-error" role="alert">{error}</p>}
-            <button className="auth-submit" type="submit" disabled={submitting}>
-              {submitting ? "Please wait..." : isRegistration ? "Create account" : "Sign in"}
-            </button>
-          </form>
-
-          <p className="auth-switch">
-            {isRegistration ? "Already registered? " : "New here? "}
-            <a href={isRegistration ? "/login.html" : "/register.html"}>
-              {isRegistration ? "Sign in" : "Create an account"}
-            </a>
-          </p>
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function Modal({ title, onClose, children, className = "" }) {
-  return (
-    <div className="modal" onMouseDown={event => {
-      if (event.target === event.currentTarget) {
-        onClose();
-      }
-    }}>
-      <section className={`modal-content ${className}`} role="dialog" aria-modal="true" aria-label={title}>
-        <div className="modal-header">
-          <h2>{title}</h2>
-          <button className="close-button" type="button" onClick={onClose} aria-label="Close">×</button>
-        </div>
-        {children}
-      </section>
-    </div>
-  );
-}
-
-function FileRow({
-  file,
-  path,
-  selected,
-  dropTarget,
-  onSelect,
-  onOpen,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
-  setDropTarget,
-}) {
-  const directory = isDirectory(file);
-  const fullPath = joinPath(path, file.name);
-
-  return (
-    <li
-      className={`file-item ${directory ? "directory" : "file"}${selected ? " selected" : ""}${dropTarget ? " drop-target" : ""}`}
-      data-file-name={file.name}
-      draggable
-      onClick={event => onSelect(file, event)}
-      onDoubleClick={() => onOpen(file)}
-      onDragStart={event => onDragStart(event, file)}
-      onDragEnd={onDragEnd}
-      onDragOver={event => {
-        if (directory) {
-          onDragOver(event, fullPath, file.name);
-        }
-      }}
-      onDragLeave={() => setDropTarget("")}
-      onDrop={event => directory && onDrop(event, fullPath)}
-      aria-selected={selected}
-    >
-      <span className="file-icon" aria-hidden="true">{directory ? "📁" : "📄"}</span>
-      <span className="file-name">{displayName(file)}</span>
-    </li>
-  );
-}
-
-function LegacyFileBrowser({ user, theme, onToggleTheme }) {
+export default function FileBrowser({ user, theme, onToggleTheme }) {
   const [currentPath, setCurrentPath] = useState("");
   const [files, setFiles] = useState([]);
   const [selected, setSelected] = useState(() => new Set());
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [dropTarget, setDropTarget] = useState("");
   const [folderModal, setFolderModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [uploadModal, setUploadModal] = useState(false);
-  const [uploadSelection, setUploadSelection] = useState([]);
   const [busy, setBusy] = useState(false);
   const [selectionBox, setSelectionBox] = useState(null);
   const toastTimer = useRef(null);
   const dragPaths = useRef([]);
   const uploadModalOpen = useRef(false);
-  const uploadInput = useRef(null);
+  const uploadHandler = useRef(null);
   const selectionStart = useRef(null);
+  const selectionAnchor = useRef(null);
 
   const selectedFiles = files.filter(file => selected.has(file.name));
   const selectedPaths = selectedFiles.map(file => joinPath(currentPath, file.name));
@@ -248,6 +47,7 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
     let active = true;
     setLoading(true);
     setSelected(new Set());
+    selectionAnchor.current = null;
 
     api.listFiles(currentPath)
       .then(result => {
@@ -283,7 +83,6 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
           setUploadModal(false);
           uploadModalOpen.current = false;
         }
-        setMenuOpen(false);
       } else if (
         event.key === "Delete" &&
         selected.size > 0 &&
@@ -293,20 +92,17 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
       }
     }
 
-    function onOutsideClick(event) {
+    function closeContextMenu(event) {
       if (!event.target.closest(".context-menu")) {
         setContextMenu(null);
-      }
-      if (!event.target.closest("#menu-toggle, #header-actions")) {
-        setMenuOpen(false);
       }
     }
 
     document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("click", onOutsideClick);
+    document.addEventListener("mousedown", closeContextMenu);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("click", onOutsideClick);
+      document.removeEventListener("mousedown", closeContextMenu);
     };
   }, [busy, selected.size]);
 
@@ -348,9 +144,11 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
       setSelectionBox(null);
     }
 
+    document.addEventListener("mousedown", startBoxSelection);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
     return () => {
+      document.removeEventListener("mousedown", startBoxSelection);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
@@ -366,12 +164,11 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
     }
 
     function onDragOver(event) {
-      if (!hasFiles(event)) {
-        return;
-      }
-      event.preventDefault();
-      if (!uploadModalOpen.current) {
-        document.body.classList.add("file-drop-active");
+      if (hasFiles(event)) {
+        event.preventDefault();
+        if (!uploadModalOpen.current) {
+          document.body.classList.add("file-drop-active");
+        }
       }
     }
 
@@ -383,12 +180,11 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
 
     function onDrop(event) {
       document.body.classList.remove("file-drop-active");
-      if (!hasFiles(event)) {
-        return;
-      }
-      event.preventDefault();
-      if (!uploadModalOpen.current) {
-        void upload(Array.from(event.dataTransfer.files), false);
+      if (hasFiles(event)) {
+        event.preventDefault();
+        if (!uploadModalOpen.current) {
+          void uploadHandler.current(Array.from(event.dataTransfer.files));
+        }
       }
     }
 
@@ -401,7 +197,7 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
       window.removeEventListener("drop", onDrop);
       document.body.classList.remove("file-drop-active");
     };
-  });
+  }, []);
 
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
 
@@ -414,6 +210,7 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
     }
 
     setSelected(new Set());
+    selectionAnchor.current = null;
     selectionStart.current = { x: event.clientX, y: event.clientY };
     setSelectionBox({ left: event.clientX, top: event.clientY, width: 0, height: 0 });
     event.preventDefault();
@@ -421,14 +218,32 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
 
   function selectFile(file, event) {
     event.stopPropagation();
-    setSelected(previous => {
-      if (event.ctrlKey || event.metaKey) {
+    const index = files.findIndex(item => item.name === file.name);
+    const isAdditive = event.ctrlKey || event.metaKey;
+
+    if (event.shiftKey && selectionAnchor.current !== null) {
+      const start = Math.min(selectionAnchor.current, index);
+      const end = Math.max(selectionAnchor.current, index);
+      const next = isAdditive ? new Set(selected) : new Set();
+      for (let itemIndex = start; itemIndex <= end; itemIndex += 1) {
+        next.add(files[itemIndex].name);
+      }
+      setSelected(next);
+      return;
+    }
+
+    if (isAdditive) {
+      setSelected(previous => {
         const next = new Set(previous);
         next.has(file.name) ? next.delete(file.name) : next.add(file.name);
         return next;
-      }
-      return new Set([file.name]);
-    });
+      });
+      selectionAnchor.current = index;
+      return;
+    }
+
+    selectionAnchor.current = index;
+    setSelected(new Set([file.name]));
   }
 
   function openFile(file) {
@@ -476,55 +291,35 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
     } else if (!event.target.closest(".context-menu")) {
       setSelected(new Set());
     }
+
     setContextMenu({
       x: Math.max(4, Math.min(event.clientX, window.innerWidth - 220)),
       y: Math.max(4, Math.min(event.clientY, window.innerHeight - 120)),
     });
   }
 
-  function startUploadModal() {
-    setUploadSelection([]);
-    setUploadModal(true);
-    uploadModalOpen.current = true;
-  }
-
-  function closeUploadModal() {
-    if (busy) {
-      return;
+  async function upload(files) {
+    if (!files.length || busy) {
+      return false;
     }
-    setUploadSelection([]);
-    setUploadModal(false);
-    uploadModalOpen.current = false;
-  }
 
-  function addUploadFiles(filesToAdd) {
-    setUploadSelection(previous => [...previous, ...filesToAdd]);
-  }
-
-  async function upload(filesToUpload, closeOnSuccess = false) {
-    if (!filesToUpload.length || busy) {
-      return;
-    }
     setBusy(true);
     try {
-      await api.uploadFiles(filesToUpload, currentPath);
+      await api.uploadFiles(files, currentPath);
       refreshFiles();
       notify("Files uploaded successfully.", "success");
-      if (closeOnSuccess) {
-        setUploadSelection([]);
-        setUploadModal(false);
-        uploadModalOpen.current = false;
-      }
+      return true;
     } catch (error) {
       notify(error.message || "An error occurred while uploading the files.", "error");
+      return false;
     } finally {
       setBusy(false);
     }
   }
 
-  async function submitFolder(event) {
-    event.preventDefault();
-    const name = new FormData(event.currentTarget).get("name").trim();
+  uploadHandler.current = upload;
+
+  async function createFolder(name) {
     if (!name) {
       notify("Folder name is required.", "error");
       return;
@@ -547,6 +342,7 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
     if (!selectedPaths.length) {
       return;
     }
+
     setBusy(true);
     try {
       await api.deleteFiles(selectedPaths);
@@ -571,24 +367,32 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
   }
 
   return (
-    <main className="container" onContextMenu={openContextMenu} onMouseDown={startBoxSelection}>
-      <FileHeaderView
+    <main className="container" onContextMenu={openContextMenu}>
+      <FileHeader
         user={user}
         theme={theme}
         selectedCount={selected.size}
         onNewFolder={() => setFolderModal(true)}
-        onUpload={startUploadModal}
+        onUpload={() => setUploadModal(true)}
         onDelete={() => setDeleteModal(true)}
         onToggleTheme={onToggleTheme}
         onLogout={signOut}
       />
+
       <div className="toolbar">
-        <button type="button" disabled={!currentPath} onClick={() => setCurrentPath(parentPath(currentPath))}>← Back</button>
+        <button
+          type="button"
+          disabled={!currentPath}
+          onClick={() => setCurrentPath(parentPath(currentPath))}
+        >
+          ← Back
+        </button>
         <span className="current-path">{currentPath || "/"}</span>
       </div>
+
       <ul className="files" aria-label="Files and folders">
         {files.map(file => (
-          <FileRowView
+          <FileRow
             key={file.name}
             file={file}
             path={currentPath}
@@ -618,8 +422,9 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
       {!loading && files.length === 0 && <p className="empty-state">No hay archivos.</p>}
       {loading && <p className="empty-state">Loading...</p>}
       {selectionBox && <div className="selection-box" style={selectionBox} />}
+
       {contextMenu && (
-        <ContextMenuView
+        <ContextMenu
           position={contextMenu}
           selectedCount={selected.size}
           onClose={() => setContextMenu(null)}
@@ -629,96 +434,32 @@ function LegacyFileBrowser({ user, theme, onToggleTheme }) {
       )}
 
       {folderModal && (
-        <FolderModalView
+        <FolderModal
           busy={busy}
           onClose={() => setFolderModal(false)}
-          onCreate={submitFolder}
+          onCreate={createFolder}
         />
       )}
-
       {deleteModal && (
-        <DeleteModalView
+        <DeleteModal
           files={selectedFiles}
           busy={busy}
           onClose={() => setDeleteModal(false)}
           onConfirm={deleteSelected}
         />
       )}
-
       {uploadModal && (
-        <UploadModalView
+        <UploadModal
           busy={busy}
-          onClose={closeUploadModal}
-          onUpload={filesToUpload => upload(filesToUpload, true)}
+          onClose={() => {
+            setUploadModal(false);
+            uploadModalOpen.current = false;
+          }}
+          onUpload={upload}
         />
       )}
 
-      <ToastMessageView toast={toast} />
+      <ToastMessage toast={toast} />
     </main>
-  );
-}
-
-export default function App() {
-  const authRoute = window.location.pathname === "/login.html" ||
-    window.location.pathname === "/register.html";
-  const authMode = window.location.pathname === "/register.html" ? "register" : "login";
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [theme, setTheme] = useState(() =>
-    localStorage.getItem("theme") ??
-    (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-  );
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  useEffect(() => {
-    let active = true;
-    api.getCurrentUser()
-      .then(result => {
-        if (active) {
-          setUser(result.user);
-          setAuthLoading(false);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setUser(null);
-          setAuthLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-    if (user && authRoute) {
-      window.location.replace("/");
-    } else if (!user && !authRoute) {
-      window.location.replace("/login.html");
-    }
-  }, [authLoading, authRoute, user]);
-
-  if (authLoading || (!user && !authRoute)) {
-    return <main className="container"><p className="empty-state">Loading...</p></main>;
-  }
-
-  if (authRoute) {
-    return <AuthPageView mode={authMode} />;
-  }
-
-  return (
-    <FileBrowser
-      user={user}
-      theme={theme}
-      onToggleTheme={() => setTheme(current => current === "dark" ? "light" : "dark")}
-    />
   );
 }
