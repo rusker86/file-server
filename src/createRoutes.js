@@ -10,5 +10,6 @@ function createRoutes(app) {
   app.post("/api/upload/", upload.single("file"), handlers.uploadHandler);
   app.post("/api/folders/", handlers.createFolderHandler);
   app.get("/api/health", handlers.healthHandler);
+  app.delete("/api/files", handlers.deleteHandler);
 }
 export default createRoutes;

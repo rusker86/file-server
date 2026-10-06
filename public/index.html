@@ -17,7 +17,7 @@
                 <div class="controls">
                   <button id="new-folder">📁 New folder</button>
                   <button id="upload">⬆️ Upload</button>
-                  <button id="theme">🌙</button>
+                  <button id="delete" class="danger" disabled>🗑️ Delete</button>
                 </div>
             </header>
 
@@ -91,6 +91,26 @@
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+
+        <div id="delete-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Delete files</h2>
+              <button id="close-delete" class="close-button">×</button>
+            </div>
+
+            <p id="delete-message"></p>
+
+            <ul id="delete-list" class="upload-list"></ul>
+
+            <div class="modal-actions">
+              <button type="button" id="cancel-delete">Cancel</button>
+              <button type="button" id="confirm-delete" class="danger-solid">
+                Delete
+              </button>
+            </div>
           </div>
         </div>
 

@@ -7,6 +7,7 @@
     --border: #e1e5ea;
     --accent: #2563eb;
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --selection-background: rgba(80, 140, 255, 0.2);
 }
 
 :root.dark {
@@ -18,6 +19,7 @@
     --border: #30343a;
     --accent: #60a5fa;
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    --selection-background: rgba(80, 140, 255, 0.2);
 }
 
 * {
@@ -54,6 +56,31 @@ header {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 24px;
+}
+
+/* Evita la selección de texto al arrastrar */
+.files {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+
+/* Elementos seleccionados */
+.file-item.selected {
+  background: var(--selection-background);
+  outline: 1px solid var(--accent);
+}
+
+
+/* Rectángulo de selección */
+.selection-box {
+  position: fixed;
+  pointer-events: none;
+
+  border: 1px solid var(--accent);
+  background: var(--selection-background);
+
+  z-index: 9999;
 }
 
 h1 {
@@ -159,6 +186,21 @@ button:active {
 
 .file {
     color: var(--text);
+}
+
+.file-item.selected {
+  background: var(--selection-background);
+  outline: 1px solid var(--accent);
+}
+
+.selection-box {
+  position: fixed;
+  pointer-events: none;
+
+  border: 1px solid var(--accent);
+  background: var(--selection-background);
+
+  z-index: 9999;
 }
 
 @media (max-width: 600px) {
@@ -428,4 +470,45 @@ button:active {
     .drop-zone {
         min-height: 180px;
     }
+}
+#folder-name {
+  border: 1px solid var(--border);   /* antes: --border-color */
+  background: var(--surface);        /* antes: --background */
+}
+
+.toast {
+  border: 1px solid var(--border);   /* antes: --border-color */
+}
+
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+button:disabled:hover {
+    background: var(--surface);
+}
+
+button:disabled:active {
+    transform: none;
+}
+
+button.danger:not(:disabled) {
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+.modal-actions .danger-solid {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+}
+
+.modal-actions .danger-solid:hover {
+    background: #dc2626;
+}
+
+#delete-message {
+    margin: 0 0 12px;
+    color: var(--text-secondary);
 }
