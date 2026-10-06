@@ -5,11 +5,13 @@ function applyTheme(theme) {
   root.classList.toggle("dark", theme === "dark");
   localStorage.setItem("theme", theme);
 
-  themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+  if (themeToggle) {
+    themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+  }
 }
 
 export function initTheme() {
-  themeToggle.addEventListener("click", () => {
+  themeToggle?.addEventListener("click", () => {
     applyTheme(root.classList.contains("dark") ? "light" : "dark");
   });
 

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Create account | File Server</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <script type="module" src="js/auth.js"></script>
+  </head>
+  <body data-auth-mode="register">
+    <main class="auth-shell">
+      <a class="auth-brand" href="/">File Server</a>
+      <section class="auth-panel" aria-labelledby="auth-title">
+        <p class="auth-kicker">A private space for every account</p>
+        <h1 id="auth-title">Create account</h1>
+        <p class="auth-description">Your files will be stored separately from other users.</p>
+
+        <form id="auth-form">
+          <label>
+            Username
+            <input name="username" type="text" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" required>
+            <span class="field-hint">3-32 letters, numbers, dots, dashes or underscores</span>
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+            <span class="field-hint">At least 8 characters</span>
+          </label>
+          <label>
+            Confirm password
+            <input name="password-confirmation" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+          </label>
+          <p id="auth-error" class="auth-error" role="alert" hidden></p>
+          <button class="auth-submit" type="submit">Create account</button>
+        </form>
+
+        <p class="auth-switch">Already registered? <a href="/login.html">Sign in</a></p>
+      </section>
+    </main>
+  </body>
+</html>

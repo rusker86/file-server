@@ -8,6 +8,8 @@ A lightweight file server built with Node.js and Express. It exposes a directory
 - Navigate nested folders without leaving the browser
 - Download files directly from the UI
 - Upload files, create folders and delete files/folders
+- Register multiple accounts with isolated file storage
+- Sign in with persistent SQLite-backed sessions
 - Custom right-click menu with "New folder" and "Delete" actions
 - Click, Ctrl/Cmd + click or drag a box to select items
 - Expose the same content through a REST API
@@ -16,7 +18,7 @@ A lightweight file server built with Node.js and Express. It exposes a directory
 
 ## Requirements
 
-- Node.js 22 or newer
+- Node.js 22.13 or newer
 - npm
 - Optional: Docker and Docker Compose
 
@@ -35,11 +37,16 @@ cd file-server
 npm install
 ```
 
-3. Start the server and point it to the directory you want to share:
+3. Build the React frontend and start the server with the directory used for per-user storage:
 
 ```bash
+npm run build
 node src/index.js /path/to/folder
 ```
+
+Register an account or sign in from the browser. Each account gets a private directory under `users/<id>` inside the configured storage root. Account records and sessions are stored in `.file-server-data/auth.sqlite` by default; set `FILE_SERVER_DATA_DIR` to use a different persistent location.
+
+For HTTPS deployments, set `COOKIE_SECURE=true` so session cookies are sent only over TLS.
 
 The server listens on (override with the `PORT` environment variable):
 
@@ -49,15 +56,19 @@ http://localhost:3000
 
 > The shared folder is required as a command-line argument. If it is missing, the server exits with a usage message.
 
-### Using npm scripts
+### Development
 
-You can also run the project through npm if you want to use the default dev setup:
+Run Express and Vite in separate terminals. Vite proxies API requests to Express:
+
+```bash
+npm run server:dev
+```
 
 ```bash
 npm run dev
 ```
 
-This script starts the app using the `./test` folder as the shared directory.
+The Vite URL is `http://localhost:5173`; the API server uses `http://localhost:3000`.
 
 ## Docker
 
@@ -73,6 +84,8 @@ docker build -t file-server .
 docker run --rm \
   -p 3000:3000 \
   -v "/path/to/folder:/shared:Z" \
+  -v "file-server-data:/data" \
+  -e FILE_SERVER_DATA_DIR=/data \
   file-server \
   /shared
 ```
@@ -101,21 +114,40 @@ docker compose down
 
 ## API
 
-The server exposes a small API for file listing and downloads.
+Registration and login are public. File operations require the `HttpOnly` session cookie issued at login.
+
+For command-line requests, save the session cookie when signing in and send it with protected requests:
+
+```bash
+curl -c cookies.txt -H 'Content-Type: application/json' \
+  -d '{"username":"maria","password":"your-password"}' \
+  http://localhost:3000/api/auth/login
+curl -b cookies.txt http://localhost:3000/api/files/
+```
+
+### `POST /api/auth/register` and `POST /api/auth/login`
+
+Accept JSON with a username and password. Usernames must be 3-32 letters, numbers, dots, dashes or underscores; passwords must be 8-128 characters.
+
+```json
+{ "username": "maria", "password": "a-long-password" }
+```
+
+Registration signs the new user in automatically. `POST /api/auth/logout` revokes the current session, and `GET /api/auth/me` returns the signed-in user.
 
 ### `GET /api/health`
 
-Returns the server state.
-
-Example response:
+Returns the server state without requiring a session.
 
 ```json
 { "message": "OK" }
 ```
 
+The remaining API routes for file listing, downloads, uploads, folder creation, moving and deletion require authentication. All file paths are resolved relative to the signed-in user's private directory.
+
 ### `GET /api/files/`
 
-Lists the contents of the shared root directory.
+Lists the contents of the signed-in user's private root directory.
 
 Example response:
 
@@ -130,7 +162,7 @@ Example response:
 
 ### `GET /api/files/<path>`
 
-Lists the contents of a subdirectory inside the shared root.
+Lists the contents of a subdirectory inside the signed-in user's private directory.
 
 Examples:
 
@@ -142,7 +174,7 @@ Examples:
 
 ### `GET /api/download/<path>`
 
-Downloads a file from the shared folder.
+Downloads a file from the signed-in user's private directory.
 
 Examples:
 
@@ -153,7 +185,7 @@ Examples:
 
 ### `POST /api/folders`
 
-Creates a folder inside `path` (relative to the shared root).
+Creates a folder inside `path` (relative to the signed-in user's private root).
 
 ```json
 { "name": "new-folder", "path": "/folder-a" }
@@ -166,18 +198,18 @@ Responds `201` on success, `400` for an invalid name and `409` if it already exi
 Uploads one or more files (`multipart/form-data`, field `file`, repeatable) into the folder given by the `path` field.
 
 ```bash
-curl -F file=@a.txt -F file=@b.txt -F path=/folder-a http://localhost:3000/api/upload
+curl -b cookies.txt -F file=@a.txt -F file=@b.txt -F path=/folder-a http://localhost:3000/api/upload
 ```
 
 ### `DELETE /api/files`
 
-Deletes files or folders (recursively). Paths are relative to the shared root.
+Deletes files or folders (recursively). Paths are relative to the signed-in user's private root.
 
 ```json
 { "files": ["/folder-a/report.pdf", "/old-folder"] }
 ```
 
-All paths are resolved inside the shared folder; requests that try to escape it (for example with `..`) are rejected with `403`.
+All paths are resolved inside that private root; requests that try to escape it (for example with `..`) are rejected with `403`.
 
 ## Project structure
 
@@ -186,6 +218,7 @@ All paths are resolved inside the shared folder; requests that try to escape it 
 ├── src/
 │   ├── index.js                     # CLI entry point
 │   ├── app.js                       # Express app factory
+│   ├── auth.js                      # SQLite users and sessions
 │   ├── routes/
 │   │   └── api.routes.js            # /api routes
 │   ├── controllers/
@@ -193,42 +226,41 @@ All paths are resolved inside the shared folder; requests that try to escape it 
 │   └── utils/
 │       └── paths.js                 # safe path resolution
 ├── public/
+│   └── css/
+│       ├── styles.css
+│       └── auth.css
+├── frontend/
 │   ├── index.html
-│   ├── css/
-│   │   └── styles.css
-│   └── js/
-│       ├── main.js                  # frontend entry point
+│   └── src/
+│       ├── App.jsx                  # React auth and file browser
 │       ├── api.js                   # fetch wrappers for the API
-│       ├── state.js                 # current path + path helpers
-│       ├── files.js                 # file list rendering/navigation
-│       ├── selection.js             # click and box selection
-│       ├── context-menu.js          # right-click menu
-│       ├── folder-modal.js          # "New folder" dialog
-│       ├── delete-modal.js          # delete confirmation dialog
-│       ├── upload.js
-│       ├── modal.js
-│       ├── theme.js
-│       └── toast.js
+│       └── main.jsx                 # React entry point
+├── dist/                            # generated by Vite, served by Express
+├── vite.config.js
 ├── Dockerfile
 ├── compose.yaml
 ├── package.json
 ├── README.md
 ├── CONTRIBUTING.md
+├── test/
+│   └── auth.test.js                 # authentication and isolation checks
 └── LICENSE.md
 ```
 
 ### Main files
 
 - `src/index.js`: validates the folder argument and starts the server.
-- `src/app.js`: builds the Express app, serves `public/` and mounts the API under `/api`.
+- `src/app.js`: builds the Express app, serves the Vite `dist/` bundle and mounts the API under `/api`.
 - `src/routes/api.routes.js`: maps every endpoint to its handler.
 - `src/controllers/files.controller.js`: listing, download, upload, folder creation, deletion and health check.
 - `src/utils/paths.js`: resolves client paths inside the shared folder and validates names.
-- `public/js/`: browser UI split into small ES modules (loaded natively, no build step).
+- `frontend/src/`: React UI and API client; Vite builds it to `dist/`.
 
 ## Development notes
 
-The application is intentionally minimal. It does not implement authentication, so anyone who can reach the server can upload and delete files inside the shared folder. Paths are always resolved inside that folder.
+Each account's files live in a separate directory under the storage root. The SQLite database should be backed up along with user files. The application does not provide password recovery; keep the database persistent to retain accounts and sessions.
+
+Run the integration test with `npm test`. Node.js 22.13 or newer is required for the built-in SQLite module.
 
 When developing locally, it is useful to serve a test folder such as `./test`:
 
@@ -240,8 +272,9 @@ Then validate the endpoints:
 
 ```bash
 curl http://localhost:3000/api/health
-curl http://localhost:3000/api/files/
 ```
+
+File API requests require the session cookie; see the authenticated `curl` example above.
 
 ## Troubleshooting
 

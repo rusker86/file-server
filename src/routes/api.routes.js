@@ -6,18 +6,25 @@ import * as files from "../controllers/files.controller.js";
 
 const upload = multer({ dest: path.join(os.tmpdir(), "file-server-uploads") });
 
-const router = Router();
+export function createApiRoutes(auth) {
+	const router = Router();
 
-router.get("/health", files.health);
+	router.post("/auth/register", auth.register);
+	router.post("/auth/login", auth.login);
+	router.post("/auth/logout", auth.requireAuth, auth.logout);
+	router.get("/auth/me", auth.requireAuth, auth.me);
+	router.get("/health", files.health);
 
-router.get("/files", files.listFiles);
-router.get("/files/{*splat}", files.listFiles);
-router.delete("/files", files.deleteFiles);
+	router.use(auth.requireAuth);
 
-router.get("/download/{*splat}", files.downloadFile);
-router.post("/upload", upload.array("file"), files.uploadFiles);
-router.post("/folders", files.createFolder);
+	router.get("/files", files.listFiles);
+	router.get("/files/{*splat}", files.listFiles);
+	router.delete("/files", files.deleteFiles);
 
-router.post("/move", files.moveFiles)
+	router.get("/download/{*splat}", files.downloadFile);
+	router.post("/upload", upload.array("file"), files.uploadFiles);
+	router.post("/folders", files.createFolder);
+	router.post("/move", files.moveFiles);
 
-export default router;
+	return router;
+}

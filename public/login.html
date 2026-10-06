@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Sign in | File Server</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <script type="module" src="js/auth.js"></script>
+  </head>
+  <body data-auth-mode="login">
+    <main class="auth-shell">
+      <a class="auth-brand" href="/">File Server</a>
+      <section class="auth-panel" aria-labelledby="auth-title">
+        <p class="auth-kicker">Personal file storage</p>
+        <h1 id="auth-title">Sign in</h1>
+        <p class="auth-description">Continue to your files.</p>
+
+        <form id="auth-form">
+          <label>
+            Username
+            <input name="username" type="text" autocomplete="username" minlength="3" maxlength="32" required>
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required>
+          </label>
+          <p id="auth-error" class="auth-error" role="alert" hidden></p>
+          <button class="auth-submit" type="submit">Sign in</button>
+        </form>
+
+        <p class="auth-switch">New here? <a href="/register.html">Create an account</a></p>
+      </section>
+    </main>
+  </body>
+</html>

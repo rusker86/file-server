@@ -1,4 +1,5 @@
 import { initContextMenu } from "./context-menu.js";
+import "./auth.js";
 import { closeDeleteModal, initDeleteModal } from "./delete-modal.js";
 import { initFileBrowser, renderFiles } from "./files.js";
 import { closeFolderModal, initFolderModal } from "./folder-modal.js";

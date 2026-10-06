@@ -25,12 +25,8 @@ function jsonOptions(method, body) {
   };
 }
 
-export function listFiles(path) {
-  return request(
-    `/api/files/${encodePath(path)}`,
-    {},
-    "Could not load the files."
-  );
+export function getCurrentUser() {
+  return request("/api/auth/me", {}, "Could not load the account.");
 }
 
 export function register(username, password) {
@@ -53,6 +49,10 @@ export function logout() {
   return request("/api/auth/logout", { method: "POST" }, "Could not sign out.");
 }
 
+export function listFiles(path) {
+  return request(`/api/files/${encodePath(path)}`, {}, "Could not load the files.");
+}
+
 export function downloadUrl(path) {
   return `/api/download/${encodePath(path)}`;
 }
@@ -65,10 +65,10 @@ export function createFolder(name, path) {
   );
 }
 
-export function deleteFiles(paths) {
+export function deleteFiles(files) {
   return request(
     "/api/files",
-    jsonOptions("DELETE", { files: paths }),
+    jsonOptions("DELETE", { files }),
     "Could not delete the selected items."
   );
 }
@@ -87,7 +87,6 @@ export function uploadFiles(files, path) {
   for (const file of files) {
     formData.append("file", file);
   }
-
   formData.append("path", path);
 
   return request(

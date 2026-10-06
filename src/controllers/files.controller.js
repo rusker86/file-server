@@ -34,7 +34,7 @@ function decodeFileName(name) {
 }
 
 export async function listFiles(req, res) {
-  const { root } = req.app.locals;
+  const root = req.userRoot;
 
   try {
     const fullPath = resolveInsideRoot(root, splatToPath(req.params.splat));
@@ -62,7 +62,7 @@ export async function listFiles(req, res) {
 }
 
 export async function downloadFile(req, res) {
-  const { root } = req.app.locals;
+  const root = req.userRoot;
 
   try {
     const fullPath = resolveInsideRoot(root, splatToPath(req.params.splat));
@@ -79,7 +79,7 @@ export async function downloadFile(req, res) {
 }
 
 export async function uploadFiles(req, res) {
-  const { root } = req.app.locals;
+  const root = req.userRoot;
   const files = req.files ?? [];
 
   if (files.length === 0) {
@@ -112,7 +112,7 @@ export async function uploadFiles(req, res) {
 }
 
 export async function createFolder(req, res) {
-  const { root } = req.app.locals;
+  const root = req.userRoot;
   const name = req.body?.name?.trim();
 
   if (!name) {
@@ -134,7 +134,7 @@ export async function createFolder(req, res) {
 }
 
 export async function deleteFiles(req, res) {
-  const { root } = req.app.locals;
+  const root = req.userRoot;
   const paths = req.body?.files;
 
   if (!Array.isArray(paths) || paths.length === 0) {
@@ -161,7 +161,7 @@ export async function deleteFiles(req, res) {
 export async function moveFiles(req, res) {
   const files = req.body?.files;
   const destination = req.body?.destination;
-  const { root } = req.app.locals;
+  const root = req.userRoot;
 
   if (!Array.isArray(files) || files.length === 0) {
     return res.status(400).json({ message: "No files to move." });
