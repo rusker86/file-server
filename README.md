@@ -7,6 +7,9 @@ A lightweight file server built with Node.js and Express. It exposes a directory
 - Browse directories from a web interface
 - Navigate nested folders without leaving the browser
 - Download files directly from the UI
+- Upload files, create folders and delete files/folders
+- Custom right-click menu with "New folder" and "Delete" actions
+- Click, Ctrl/Cmd + click or drag a box to select items
 - Expose the same content through a REST API
 - Run locally or with Docker
 - Serve any directory you choose at startup
@@ -38,7 +41,7 @@ npm install
 node src/index.js /path/to/folder
 ```
 
-The server listens on:
+The server listens on (override with the `PORT` environment variable):
 
 ```text
 http://localhost:3000
@@ -148,20 +151,64 @@ Examples:
 /api/download/folder-a/report.pdf
 ```
 
+### `POST /api/folders`
+
+Creates a folder inside `path` (relative to the shared root).
+
+```json
+{ "name": "new-folder", "path": "/folder-a" }
+```
+
+Responds `201` on success, `400` for an invalid name and `409` if it already exists.
+
+### `POST /api/upload`
+
+Uploads one or more files (`multipart/form-data`, field `file`, repeatable) into the folder given by the `path` field.
+
+```bash
+curl -F file=@a.txt -F file=@b.txt -F path=/folder-a http://localhost:3000/api/upload
+```
+
+### `DELETE /api/files`
+
+Deletes files or folders (recursively). Paths are relative to the shared root.
+
+```json
+{ "files": ["/folder-a/report.pdf", "/old-folder"] }
+```
+
+All paths are resolved inside the shared folder; requests that try to escape it (for example with `..`) are rejected with `403`.
+
 ## Project structure
 
 ```text
 .
 ├── src/
-│   ├── index.js
-│   ├── server.js
-│   ├── createRoutes.js
-│   ├── handlersRoutes.js
-│   └── newFile.js
+│   ├── index.js                     # CLI entry point
+│   ├── app.js                       # Express app factory
+│   ├── routes/
+│   │   └── api.routes.js            # /api routes
+│   ├── controllers/
+│   │   └── files.controller.js      # route handlers
+│   └── utils/
+│       └── paths.js                 # safe path resolution
 ├── public/
 │   ├── index.html
-│   ├── main.js
-│   └── styles.css
+│   ├── css/
+│   │   └── styles.css
+│   └── js/
+│       ├── main.js                  # frontend entry point
+│       ├── api.js                   # fetch wrappers for the API
+│       ├── state.js                 # current path + path helpers
+│       ├── files.js                 # file list rendering/navigation
+│       ├── selection.js             # click and box selection
+│       ├── context-menu.js          # right-click menu
+│       ├── folder-modal.js          # "New folder" dialog
+│       ├── delete-modal.js          # delete confirmation dialog
+│       ├── upload.js
+│       ├── modal.js
+│       ├── theme.js
+│       └── toast.js
 ├── Dockerfile
 ├── compose.yaml
 ├── package.json
@@ -172,15 +219,16 @@ Examples:
 
 ### Main files
 
-- `src/index.js`: starts the app and validates the required folder argument.
-- `src/server.js`: creates the Express server and serves static files from `public/`.
-- `src/createRoutes.js`: registers the endpoint handlers.
-- `src/handlersRoutes.js`: implements the API logic for listing folders, downloads, and health checks.
-- `public/`: browser UI assets.
+- `src/index.js`: validates the folder argument and starts the server.
+- `src/app.js`: builds the Express app, serves `public/` and mounts the API under `/api`.
+- `src/routes/api.routes.js`: maps every endpoint to its handler.
+- `src/controllers/files.controller.js`: listing, download, upload, folder creation, deletion and health check.
+- `src/utils/paths.js`: resolves client paths inside the shared folder and validates names.
+- `public/js/`: browser UI split into small ES modules (loaded natively, no build step).
 
 ## Development notes
 
-The application is intentionally minimal. It does not implement authentication or advanced directory permissions checks; it simply serves a local filesystem path exactly as provided.
+The application is intentionally minimal. It does not implement authentication, so anyone who can reach the server can upload and delete files inside the shared folder. Paths are always resolved inside that folder.
 
 When developing locally, it is useful to serve a test folder such as `./test`:
 
@@ -197,7 +245,7 @@ curl http://localhost:3000/api/files/
 
 ## Troubleshooting
 
-### Error: `Usage: node index.js <folder-to-serve>`
+### Error: `Usage: node src/index.js <folder-to-serve>`
 
 This means you started the app without providing the path to the directory to be shared. Run it again with a valid folder:
 
