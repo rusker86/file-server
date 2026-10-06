@@ -14,7 +14,20 @@
       <header>
         <h1>File Server</h1>
 
-        <div class="controls">
+        <button
+          id="menu-toggle"
+          class="menu-toggle"
+          type="button"
+          aria-label="Open actions menu"
+          aria-expanded="false"
+          aria-controls="header-actions"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <div id="header-actions" class="controls">
           <button id="new-folder" type="button">📁 New folder</button>
           <button id="upload" type="button">⬆️ Upload</button>
           <button id="delete" type="button" class="danger" disabled>🗑️ Delete</button>

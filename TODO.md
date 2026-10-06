@@ -6,14 +6,14 @@ FILE SERVER
 │   ├── [x] Upload files
 │   ├── [x] Create folders
 │   ├── [x] Delete files/folders
-│   └── [ ] Move files/folders
+│   └── [x] Move files/folders
 │
 ├── Security
 │   └── [ ] Authentication
 │
 ├── File interaction
 │   ├── [x] Context menu (new folder / delete)
-│   ├── [ ] Drag & drop move
+│   ├── [x] Drag & drop move
 │   ├── [ ] File preview
 │   ├── [ ] Text editor
 │   └── [ ] Create text files
